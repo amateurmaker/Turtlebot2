@@ -1,0 +1,45 @@
+<launch>
+  <!-- Arguments -->
+  <arg name="model" default="$(env TURTLEBOT3_MODEL)" doc="model type [burger, waffle, waffle_pi]"/>
+  <!--arg name="map_file" default="$(find my_kobuki)/map/map.yaml"/-->
+  <arg name="map_file" default="/home/arc/gmapping_02.yaml"/>
+  <arg name="open_rviz" default="true"/>
+  <arg name="move_forward_only" default="true"/>
+  <arg name="cmd_vel_topic" default="/cmd_vel" />
+  <arg name="odom_topic" default="odom" />
+
+  <!-- Turtlebot3 -->
+  <include file="$(find kobuki_node)/launch/robot_with_tf.launch">
+    <!--arg name="model" value="$(arg model)" /-->
+  </include>
+
+  <!-- Map server -->
+  <node pkg="map_server" name="map_server" type="map_server" args="$(arg map_file)"/>
+
+  <!-- AMCL -->
+  <!--include file="$(find amcl)/examples/amcl_diff.launch"/-->
+  <include file="$(find turtlebot3_navigation)/launch/amcl.launch"/>
+
+  <!-- move_base -->
+  <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen">
+    <param name="base_local_planner" value="dwa_local_planner/DWAPlannerROS" />
+    <rosparam file="$(find my_kobuki)/param/costmap_common_params_waffle_pi.yaml" command="load" ns="global_costmap" />
+    <rosparam file="$(find my_kobuki)/param/costmap_common_params_waffle_pi.yaml" command="load" ns="local_costmap" />
+    <rosparam file="$(find my_kobuki)/param/local_costmap_params.yaml" command="load" />
+    <rosparam file="$(find my_kobuki)/param/global_costmap_params.yaml" command="load" />
+    <rosparam file="$(find my_kobuki)/param/move_base_params.yaml" command="load" />
+    <rosparam file="$(find my_kobuki)/param/dwa_local_planner_params_waffle_pi.yaml" command="load" />
+    <remap from="cmd_vel" to="mobile_base/commands/velocity"/>
+    <remap from="odom" to="$(arg odom_topic)"/>
+    <param name="DWAPlannerROS/min_vel_x" value="0.0" if="$(arg move_forward_only)" />
+  </node>
+
+  <!--sick_tim_511-->
+  <include file="$(find sick_scan)/launch/sick_tim_5xx_base_link.launch"/>
+
+  <!-- rviz -->
+  <!--group if="$(arg open_rviz)"--> 
+    <!--node pkg="rviz" type="rviz" name="rviz" required="true"
+          args="-d $(find kobuki_slam)/rviz/kobuki_navigation.rviz "/-->
+  <!--/group-->
+</launch>
